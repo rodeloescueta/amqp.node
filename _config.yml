@@ -2,3 +2,9 @@ markdown: redcarpet
 redcarpet:
   extensions: ["no_intra_emphasis", "fenced_code_blocks", "autolink",
   "tables", "with_toc_data"]
+
+title: amqplib
+description: AMQP 0-9-1 library and client for Node.JS
+google_analytics: 
+show_downloads: true
+theme: jekyll-theme-time-machine

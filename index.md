@@ -1,8 +1,3 @@
----
-layout: default
-title: AMQP 0-9-1 library and client for Node.JS
----
-
 # AMQP 0-9-1 library and client for Node.JS
 
 `amqplib` implements the machinery needed to make clients for AMQP
@@ -19,30 +14,54 @@ way or that in search of a usable API. In `amqplib` I have tried to
 implement only the necessary machinery of AMQP, in layers as best I
 can, without prejudice to any particular client API.
 
-[Client API reference](channel_api.html) | [SSL guide](ssl.html)
+## Channel API overview
 
-## Client APIs
+```javascript
+var q = 'tasks';
 
-There are two client APIs included here, which are really two styles
-of the same API: one uses promises, and one callbacks.
+// Publisher
+var open = require('amqplib').connect('amqp://localhost');
+open.then(function(conn) {
+  var ok = conn.createChannel();
+  ok = ok.then(function(ch) {
+    ch.assertQueue(q);
+    ch.sendToQueue(q, new Buffer('something to do'));
+  });
+  return ok;
+}).then(null, console.warn);
 
-The client APIs are oriented around `Channel` objects (which are
-something like sessions). They expose the protocol fairly directly as
-methods on an object. Exchanges and queues are only represented
-insofar as they are named (with strings) in arguments to these
-methods.
+// Consumer
+open.then(function(conn) {
+  var ok = conn.createChannel();
+  ok = ok.then(function(ch) {
+    ch.assertQueue(q);
+    ch.consume(q, function(msg) {
+      console.log(msg.content.toString());
+      ch.ack(msg);
+    });
+  });
+  return ok;
+}).then(null, console.warn);
+```
+
+The client API included is channel-oriented. This represents the
+protocol fairly directly, as connections and channels (something like
+'sessions'). Most of the operations in the API are accessed by
+creating a channel and calling methods; exchanges and queues are only
+represented insofar as they are named (with strings) in these
+operations.
 
 Almost all operations are asynchronous RPCs; these methods on
-`Channel` either return promises, or accept callbacks. Some operations
-(e.g., `#ack`) elicit no response from the server, and don't return a
-promise or take a callback.
+`Channel` return promises which can be composed in all the usual
+ways. Some operations (e.g., `#ack`) elicit no response from the
+server, and don't return a promise.
 
 In general I have made arguments that are mandatory in the protocol
 into method arguments in the API, and coalesced optional arguments,
 properties, and RabbitMQ extensions into a single `options` argument
-which can often be omitted altogether.
+which can be ommitted altogether.
 
-The [reference](channel_api.html) has full details of both APIs.
+The [reference](doc/channel_api.html) has full details.
 
 ## Library overview
 
@@ -57,7 +76,7 @@ In `amqplib`, parsing and serialising are dealt with in the modules
  * `codec` procedures for parsing and serialising values;
  *  `defs` generated code for encoding and decoding protocol methods;
     and,
- * `frame` for turning a byte stream into decoded frames and
+ * `frames` for turning a byte streams into decoded frames and
    vice-versa.
 
 Connection state is maintained in a `Connection` object (module
@@ -66,8 +85,8 @@ these two modules also implement the opening and closing handshakes.
 
 The interfaces among these modules is small and mostly mediated with
 primitive values; e.g., strings and numbers. A few points of interface
-require callbacks of the `function(err, ok) {}` variety, or in the
-form of duck-typed objects (e.g., an object with an `#accept` method).
+require callbacks in the form of duck-typed objects (e.g., an object
+with an `#accept` method).
 
 
 [rabbit.js]: https://github.com/squaremo/rabbit.js
